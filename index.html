@@ -827,30 +827,47 @@ body { position: fixed; inset: 0; }
 
   const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
 
-  // ---- 音频引擎 ----
-  function ctx() {
+  // ---- 音频引擎（修复异步 resume） ----
+  async function ensureCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    if (audioCtx.state === 'suspended') audioCtx.resume();
+    if (audioCtx.state === "suspended") await audioCtx.resume();
     return audioCtx;
   }
 
-  function beep() {
+  let audioReady = false;
+  async function warmupAudio() {
+    if (audioReady) return;
     try {
-      const c = ctx(); const t = c.currentTime; const sr = c.sampleRate;
-      const dur = 0.09; const len = sr * dur | 0;
+      const c = await ensureCtx();
+      const b = c.createBuffer(1, 1, c.sampleRate);
+      const s = c.createBufferSource(); s.buffer = b;
+      const g = c.createGain(); g.gain.value = 0.001;
+      s.connect(g); g.connect(c.destination); s.start();
+      audioReady = true;
+    } catch(e) {}
+  }
+
+  async function beep() {
+    try {
+      const c = await ensureCtx();
+      const t = c.currentTime;
+      const dur = 0.15; const sr = c.sampleRate; const len = Math.floor(sr * dur);
       const b = c.createBuffer(1, len, sr); const d = b.getChannelData(0);
       for (let i = 0; i < len; i++) {
         const s = i / sr;
-        let v = (Math.random()*2-1) * Math.exp(-s/0.012);
-        v += Math.sin(6.2832*(190+Math.random()*90)*s) * Math.exp(-s/0.016) * 0.55;
-        v += Math.sin(6.2832*(580+Math.random()*250)*s) * Math.exp(-s/0.022) * 0.25;
-        d[i] = Math.max(-1, Math.min(1, v * 0.55));
+        let v = Math.sin(6.2832 * (160 + Math.random() * 60) * s) * Math.exp(-s / 0.018);
+        v += (Math.random() * 2 - 1) * Math.exp(-s / 0.02) * 0.7;
+        v += Math.sin(6.2832 * (700 + Math.random() * 300) * s) * Math.exp(-s / 0.025) * 0.3;
+        d[i] = Math.max(-1, Math.min(1, v * 0.7));
       }
-      const s = c.createBufferSource(); s.buffer = b;
-      const g = c.createGain();
-      g.gain.setValueAtTime(0.45, t);
-      g.gain.exponentialRampToValueAtTime(0.01, t+dur);
-      s.connect(g); g.connect(c.destination); s.start(t);
+      const src = c.createBufferSource(); src.buffer = b;
+      const filter = c.createBiquadFilter();
+      filter.type = "bandpass"; filter.frequency.value = 400; filter.Q.value = 1.2;
+      const gain = c.createGain();
+      gain.gain.setValueAtTime(0.7, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
+      src.connect(filter); filter.connect(gain); gain.connect(c.destination);
+      src.start(t);
     } catch(e) {}
   }
 
@@ -859,6 +876,9 @@ body { position: fixed; inset: 0; }
     try {
       if (!window.speechSynthesis) return;
       speechSynthesis.cancel();
+
+      const vs = speechSynthesis.getVoices();
+      if (vs.length > 0) voicesReady = true;
 
       const texts = ['卧槽泥马','我草你妈','W C N M'];
       const u = new SpeechSynthesisUtterance(texts[Math.random()*texts.length|0]);
@@ -871,7 +891,7 @@ body { position: fixed; inset: 0; }
                   || vs[0];
         if (best) u.voice = best;
       }
-      speechSynthesis.speak(u);
+      setTimeout(() => { speechSynthesis.speak(u); }, 10);
     } catch(e) {}
   }
 
@@ -881,6 +901,7 @@ body { position: fixed; inset: 0; }
       voicesReady = true;
       speechSynthesis.getVoices();
     };
+    setTimeout(() => { voicesReady = true; }, 2000);
   }
 
   // ---- 气泡 ----
@@ -940,6 +961,7 @@ body { position: fixed; inset: 0; }
     const py = cy || (rect.top + Math.random()*rect.height*0.5);
     particles(px, py, 3 + (Math.random()*5|0));
 
+    warmupAudio();
     beep();
     if (Math.random() < 0.45) speak();
   }
