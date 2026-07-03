@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>你老婆·极简版</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:radial-gradient(ellipse 80% 50% at 50% 30%,#2D1030,#0A0410);height:100dvh;display:flex;flex-direction:column;align-items:center;justify-content:center;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:manipulation}
+h1{color:#FFE0F0;font-size:clamp(18px,5vw,26px);margin-bottom:8px;text-shadow:0 0 16px rgba(255,80,160,0.5)}
+.count{color:rgba(255,200,220,0.7);font-size:13px;margin-bottom:20px}
+.count span{color:#FF7090;font-weight:700;font-size:20px}
+/* 简易角色 */
+.char{width:min(180px,50vmin);height:min(400px,110vmin);position:relative;cursor:pointer;transition:transform .08s}
+.char:active{transform:scale(.94)}
+/* 耳朵 */
+.ear{position:absolute;width:28px;height:82px;background:#1A1A30;border-radius:14px 14px 5px 5px;top:0}
+.ear::after{content:'';position:absolute;width:14px;height:56px;background:#FFB0C8;border-radius:7px 7px 3px 3px;top:12px;left:7px}
+.ear-l{left:38px;transform:rotate(-10deg)}.ear-r{right:38px;transform:rotate(10deg)}
+/* 头 */
+.head{position:absolute;width:110px;height:116px;background:#FFE8D6;border-radius:55px 55px 48px 48px;top:48px;left:35px;box-shadow:inset 0 6px 12px rgba(255,255,255,0.15)}
+/* 刘海 */
+.bangs{position:absolute;width:104px;height:48px;background:#1E1E2E;border-radius:0 0 52px 52px;top:54px;left:38px;z-index:2}
+/* 眼 */
+.eye{position:absolute;width:28px;height:32px;background:#fff;border-radius:50%;top:96px;z-index:3;box-shadow:0 0 0 2px #1A1A2E}
+.eye-l{left:52px}.eye-r{right:52px}
+.eye::after{content:'';position:absolute;width:14px;height:18px;background:#1A1A2E;border-radius:50%;top:6px;left:7px}
+.eye::before{content:'';position:absolute;width:5px;height:6px;background:#fff;border-radius:50%;top:3px;left:4px;z-index:4}
+/* 腮红 */
+.blush{position:absolute;width:16px;height:10px;background:rgba(255,140,160,.4);border-radius:50%;top:116px;z-index:3;filter:blur(2px)}
+.blush-l{left:40px}.blush-r{right:40px}
+/* 嘴 */
+.mouth{position:absolute;width:18px;height:10px;border-bottom:2px solid #E8787A;border-radius:0 0 9px 5px;top:122px;left:81px;z-index:3}
+/* 身体 */
+.body{position:absolute;width:90px;height:110px;background:#15152A;border-radius:28px 28px 14px 14px;top:176px;left:45px}
+/* V领 */
+.chest{position:absolute;width:0;height:0;border-left:22px solid transparent;border-right:22px solid transparent;border-top:42px solid #FFFAFA;top:180px;left:68px;z-index:2}
+/* 腿 */
+.leg{position:absolute;width:26px;height:110px;background:linear-gradient(180deg,#FDDCC4 0%,#FDDCC4 22%,#1A1A2E 22%,#10101F 100%);border-radius:13px 13px 8px 8px;top:280px}
+.leg-l{left:52px}.leg-r{right:52px}
+/* 鞋跟 */
+.leg::after{content:'';position:absolute;width:30px;height:16px;background:#0A0A0A;border-radius:3px 3px 8px 8px;bottom:-10px;left:-2px}
+/* 尾巴 */
+.tail{position:absolute;width:24px;height:24px;background:radial-gradient(circle at 35% 35%,#fff,#E0D8E0);border-radius:50%;bottom:124px;right:8px;animation:tw 2.8s ease-in-out infinite}
+@keyframes tw{0%,100%{transform:rotate(0)}30%{transform:rotate(8deg)}70%{transform:rotate(-6deg)}}
+/* 气泡 */
+.bub{position:fixed;pointer-events:none;z-index:50;animation:bf 1.6s ease-out forwards;font-size:clamp(24px,7vw,36px);font-weight:900;background:#fff;color:#FF2050;padding:10px 18px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.bub::after{content:'';position:absolute;bottom:-10px;left:50%;margin-left:-10px;border:10px solid transparent;border-top:10px solid #fff}
+@keyframes bf{0%{opacity:1;transform:translateY(0) scale(.3)}15%{opacity:1;transform:translateY(-15px) scale(1.1)}25%{transform:translateY(-25px) scale(1)}100%{opacity:0;transform:translateY(-180px) scale(.7)}}
+/* 粒子 */
+.pt{position:fixed;pointer-events:none;z-index:40;animation:pf .7s ease-out forwards;font-size:20px}
+@keyframes pf{0%{opacity:1;transform:translate(0,0) scale(.5)}100%{opacity:0;transform:translate(var(--x),var(--y)) scale(1.2)}}
+</style>
+</head>
+<body>
+
+<h1>🐰 你 老 婆 🐰</h1>
+<div class="count">被戳 <span id="n">0</span> 次</div>
+
+<div class="char" id="c">
+  <div class="ear ear-l"></div><div class="ear ear-r"></div>
+  <div class="head"></div><div class="bangs"></div>
+  <div class="eye eye-l"></div><div class="eye eye-r"></div>
+  <div class="blush blush-l"></div><div class="blush blush-r"></div>
+  <div class="mouth"></div>
+  <div class="body"></div><div class="chest"></div>
+  <div class="leg leg-l"></div><div class="leg leg-r"></div>
+  <div class="tail"></div>
+</div>
+
+<script>
+var count=0,n=document.getElementById('n');
+var xhr1=new XMLHttpRequest(),xhr2=new XMLHttpRequest();
+var blob1=null,blob2=null;
+
+// 预加载 MP3 文件为 Blob
+xhr1.open('GET','wcnm.mp3',true);xhr1.responseType='blob';
+xhr1.onload=function(){blob1=URL.createObjectURL(xhr1.response)};
+xhr1.send();
+xhr2.open('GET','nsd.mp3',true);xhr2.responseType='blob';
+xhr2.onload=function(){blob2=URL.createObjectURL(xhr2.response)};
+xhr2.send();
+
+function hit(e){
+  count++;n.textContent=count;
+
+  // 语音
+  try{
+    var url=Math.random()<0.5?blob1:blob2;
+    if(url){var a=new Audio(url);a.play().catch(function(){})}
+  }catch(e){}
+
+  // 气泡
+  var texts=['WCNM!','WCNM!!','卧槽泥马','我是你爹!','WC!','艹!'];
+  var b=document.createElement('div');b.className='bub';
+  b.textContent=texts[Math.random()*texts.length|0];
+  b.style.left=(e.clientX-40+Math.random()*30)+'px';
+  b.style.top=(e.clientY-80)+'px';
+  b.addEventListener('animationend',function(){b.remove()});
+  document.body.appendChild(b);
+
+  // 粒子
+  var ps=['💢','🔥','💥','😡','⚡','❗'];
+  for(var i=0;i<4;i++){
+    var p=document.createElement('div');p.className='pt';
+    p.textContent=ps[Math.random()*ps.length|0];
+    p.style.left=e.clientX+'px';p.style.top=e.clientY+'px';
+    p.style.setProperty('--x',((Math.random()-.5)*120)+'px');
+    p.style.setProperty('--y',((Math.random()-.5)*120-40)+'px');
+    p.addEventListener('animationend',function(){p.remove()});
+    document.body.appendChild(p);
+  }
+}
+
+document.getElementById('c').addEventListener('pointerdown',function(e){
+  e.preventDefault();hit(e);
+});
+</script>
+</body>
+</html>
