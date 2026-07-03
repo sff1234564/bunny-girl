@@ -829,43 +829,53 @@ body { position: fixed; inset: 0; }
 
   const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
 
-  // ---- 音频引擎（同步创建，兼容 iOS） ----
-  // AudioContext 必须在触摸事件中同步创建/resume，不能用 async/await
+  // ---- 音频引擎 ----
+  // AudioContext 必须在用户手势中同步创建
   function getCtx() {
-    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    }
     return audioCtx;
   }
 
-  // 在触摸事件里同步调用，解锁音频
+  // 首次触摸时同步解锁音频
   function unlockAudio() {
-    try { const cx = getCtx(); if (cx.state === "suspended") cx.resume(); } catch(e) {}
+    try {
+      const cx = getCtx();
+      if (cx.state === "suspended") cx.resume();
+    } catch(e) {}
   }
 
   function beep() {
     try {
       const cx = getCtx();
-      if (cx.state === "suspended") { cx.resume().then(() => playBeep(cx)); return; }
+      if (cx.state === "suspended") {
+        cx.resume().then(function() { playBeep(cx); });
+        return;
+      }
       playBeep(cx);
     } catch(e) {}
   }
 
   function playBeep(cx) {
     try {
-      const t = cx.currentTime, dur = 0.15, sr = cx.sampleRate;
-      const len = Math.floor(sr * dur);
-      const b = cx.createBuffer(1, len, sr);
-      const d = b.getChannelData(0);
-      for (let i = 0; i < len; i++) {
-        const s = i / sr;
-        let v = Math.sin(6.2832 * (160 + Math.random() * 60) * s) * Math.exp(-s / 0.018);
-        v += (Math.random() * 2 - 1) * Math.exp(-s / 0.02) * 0.7;
-        v += Math.sin(6.2832 * (700 + Math.random() * 300) * s) * Math.exp(-s / 0.025) * 0.3;
+      var t = cx.currentTime;
+      var sr = cx.sampleRate;
+      var dur = 0.15;
+      var len = Math.floor(sr * dur);
+      var b = cx.createBuffer(1, len, sr);
+      var d = b.getChannelData(0);
+      for (var i = 0; i < len; i++) {
+        var ts = i / sr;
+        var v = Math.sin(6.2832 * (160 + Math.random() * 60) * ts) * Math.exp(-ts / 0.018);
+        v += (Math.random() * 2 - 1) * Math.exp(-ts / 0.02) * 0.7;
+        v += Math.sin(6.2832 * (700 + Math.random() * 300) * ts) * Math.exp(-ts / 0.025) * 0.3;
         d[i] = Math.max(-1, Math.min(1, v * 0.7));
       }
-      const src = cx.createBufferSource(); src.buffer = b;
-      const flt = cx.createBiquadFilter();
+      var src = cx.createBufferSource(); src.buffer = b;
+      var flt = cx.createBiquadFilter();
       flt.type = "bandpass"; flt.frequency.value = 400; flt.Q.value = 1.2;
-      const gn = cx.createGain();
+      var gn = cx.createGain();
       gn.gain.setValueAtTime(0.7, t);
       gn.gain.exponentialRampToValueAtTime(0.01, t + dur);
       src.connect(flt); flt.connect(gn); gn.connect(cx.destination);
@@ -873,52 +883,39 @@ body { position: fixed; inset: 0; }
     } catch(e) {}
   }
 
-// ---- 语音（兼容 iOS/Android） ----
-  let _lastUtterance = null; // 保持引用防 GC
+  // ---- 语音 ----
+  var _lastUtterance = null;
 
   function speak() {
     try {
-      const ss = window.speechSynthesis;
+      var ss = window.speechSynthesis;
       if (!ss) return;
 
-      const vs = ss.getVoices();
-      if (vs.length > 0) voicesReady = true;
-
-      const texts = ["卧槽泥马","我草你妈","我是你爹","W C N M"];
-      const u = new SpeechSynthesisUtterance(texts[Math.random()*texts.length|0]);
+      var texts = ["卧槽泥马","我草你妈","我是你爹","W C N M"];
+      var u = new SpeechSynthesisUtterance(texts[Math.random() * texts.length | 0]);
       u.lang = "zh-CN";
       u.rate = 1.2;
       u.pitch = 0.75;
       u.volume = 1;
 
+      // 尝试选中文语音
+      var vs = ss.getVoices();
       if (vs.length > 0) {
-        const best = vs.find(v => v.lang.startsWith("zh-CN"))
-                  || vs.find(v => v.lang.startsWith("zh"))
-                  || null;
+        var best = vs.find(function(v) { return v.lang.indexOf("zh") === 0; });
         if (best) u.voice = best;
       }
 
       _lastUtterance = u;
       ss.cancel();
-      // requestAnimationFrame 确保在用户手势窗口内执行
-      requestAnimationFrame(() => {
-        try { ss.speak(u); } catch(e) {}
-      });
+      ss.speak(u);
     } catch(e) {}
   }
 
   if (window.speechSynthesis) {
     speechSynthesis.getVoices();
-    speechSynthesis.onvoiceschanged = () => {
+    speechSynthesis.onvoiceschanged = function() {
       voicesReady = true;
-      speechSynthesis.getVoices();
     };
-    setTimeout(() => { voicesReady = true; }, 3000);
-    // Android Chrome 修复：定时保活
-    setInterval(() => {
-      if (speechSynthesis.speaking) return;
-      try { speechSynthesis.pause(); speechSynthesis.resume(); } catch(e) {}
-    }, 5000);
   }
 
 // ---- 气泡 ----
