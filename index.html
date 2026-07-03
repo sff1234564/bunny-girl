@@ -719,6 +719,27 @@ body { position: fixed; inset: 0; }
   20%  { opacity: 1; transform: translateY(-40px) scale(1.3) rotate(0deg); }
   100% { opacity: 0; transform: translateY(-120px) scale(0.8) rotate(10deg); }
 }
+/* 名字输入框 */
+.name-input {
+  margin-top: 12px;
+  padding: 8px 16px;
+  width: 160px;
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 20px;
+  background: rgba(255,255,255,0.08);
+  color: #FFE0F0;
+  font-size: 14px;
+  text-align: center;
+  outline: none;
+  font-family: inherit;
+  transition: border 0.2s;
+}
+.name-input:focus {
+  border-color: rgba(255,80,160,0.6);
+}
+.name-input::placeholder {
+  color: rgba(255,255,255,0.3);
+}
 </style>
 </head>
 <body>
@@ -733,6 +754,7 @@ body { position: fixed; inset: 0; }
   <div class="top-ui">
     <div class="title">🐰 你 老 婆 🐰</div>
     <div class="count-text">被戳 <span id="countNum">0</span> 次</div>
+    <input class="name-input" id="nameInput" type="text" placeholder="输入名字..." maxlength="10" autocomplete="off">
   </div>
 
   <!-- 角色 -->
@@ -898,8 +920,27 @@ body { position: fixed; inset: 0; }
 
   // 语音播放
   function playVoice(file) {
+    // 先读名字
+    var name = document.getElementById("nameInput").value.trim();
+    if (name && window.speechSynthesis) {
+      try {
+        var u = new SpeechSynthesisUtterance(name);
+        u.lang = "zh-CN"; u.rate = 1.1; u.pitch = 0.8; u.volume = 1;
+        // 名字读完后再放MP3
+        u.onend = function() { playMp3(file); };
+        u.onerror = function() { playMp3(file); };
+        speechSynthesis.cancel();
+        speechSynthesis.speak(u);
+        return;
+      } catch(e) {}
+    }
+    // 没名字或语音不可用，直接放MP3
+    playMp3(file);
+  }
+
+  function playMp3(file) {
     try {
-      var blob = file === 'wcnm.mp3' ? _blob1 : _blob2;
+      var blob = file === "wcnm.mp3" ? _blob1 : _blob2;
       if (!blob) return;
       var a = new Audio(blob);
       a.play().catch(function(){});
@@ -968,6 +1009,11 @@ body { position: fixed; inset: 0; }
     // 气泡
     const rect = charEl.getBoundingClientRect();
     var selectedPair = PAIRS[Math.random() * PAIRS.length | 0];
+    // 如果有名字，加到气泡前面
+    var name = document.getElementById("nameInput").value.trim();
+    if (name) {
+      selectedPair = { t: name + " " + selectedPair.t, v: selectedPair.v, c: selectedPair.c };
+    }
     bubble(rect.left + rect.width/2 - 30, rect.top + 10, selectedPair);
 
     // 粒子
