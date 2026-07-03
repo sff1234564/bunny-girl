@@ -875,6 +875,8 @@ body { position: fixed; inset: 0; }
   };
   // ---- 音频引擎（XHR 加载 MP3 文件为 Blob） ----
   var _blob1 = null, _blob2 = null;
+  var _lastUtterance = null;
+  var _speechWoke = false;
   
   // 预加载语音文件
   (function preloadVoices() {
@@ -890,6 +892,18 @@ body { position: fixed; inset: 0; }
 
   // 点击音效
   var _ctx = null;
+  function wakeSpeech() {
+    if (_speechWoke || !window.speechSynthesis) return;
+    _speechWoke = true;
+    // 预加载语音列表
+    speechSynthesis.getVoices();
+    // 播一个静音唤醒引擎
+    try {
+      var dummy = new SpeechSynthesisUtterance("");
+      dummy.volume = 0;
+      speechSynthesis.speak(dummy);
+    } catch(e) {}
+  }
   function getCtx() {
     if (!_ctx) _ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (_ctx.state === "suspended") _ctx.resume();
@@ -920,21 +934,26 @@ body { position: fixed; inset: 0; }
 
   // 语音播放
   function playVoice(file) {
-    // 先读名字
     var name = document.getElementById("nameInput").value.trim();
     if (name && window.speechSynthesis) {
       try {
+        var ss = speechSynthesis;
+        // 确保语音引擎醒着
+        if (ss.paused) ss.resume();
+        if (ss.speaking) ss.cancel();
+        
         var u = new SpeechSynthesisUtterance(name);
-        u.lang = "zh-CN"; u.rate = 1.1; u.pitch = 0.8; u.volume = 1;
-        // 名字读完后再放MP3
+        u.lang = "zh-CN"; u.rate = 1.0; u.pitch = 0.85; u.volume = 1;
+        // 保持引用防GC
+        _lastUtterance = u;
+        // 读完名字播MP3
         u.onend = function() { playMp3(file); };
         u.onerror = function() { playMp3(file); };
-        speechSynthesis.cancel();
-        speechSynthesis.speak(u);
+        // 直接speak，不要setTimeout
+        ss.speak(u);
         return;
       } catch(e) {}
     }
-    // 没名字或语音不可用，直接放MP3
     playMp3(file);
   }
 
@@ -1024,6 +1043,7 @@ body { position: fixed; inset: 0; }
     // 竖中指🖕
     spawnFinger(rect.left + rect.width * 0.25, rect.top + rect.height * 0.38);
 
+    wakeSpeech();
     playBeep();
     playVoice(selectedPair.v);
   }
