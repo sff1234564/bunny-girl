@@ -967,7 +967,8 @@ body { position: fixed; inset: 0; }
 
     // 气泡
     const rect = charEl.getBoundingClientRect();
-    bubble(rect.left + rect.width/2 - 30, rect.top + 10);
+    var selectedPair = PAIRS[Math.random() * PAIRS.length | 0];
+    bubble(rect.left + rect.width/2 - 30, rect.top + 10, selectedPair);
 
     // 粒子
     const px = cx || (rect.left + Math.random()*rect.width);
@@ -978,7 +979,7 @@ body { position: fixed; inset: 0; }
     spawnFinger(rect.left + rect.width * 0.25, rect.top + rect.height * 0.38);
 
     playBeep();
-    playVoice();
+    playVoice(selectedPair.v);
   }
 
   // ---- 事件 ----
