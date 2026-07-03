@@ -829,32 +829,32 @@ body { position: fixed; inset: 0; }
 
   const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
 
-  // ---- 音频引擎（修复异步 resume） ----
-  async function ensureCtx() {
+  // ---- 音频引擎（同步创建，兼容 iOS） ----
+  // AudioContext 必须在触摸事件中同步创建/resume，不能用 async/await
+  function getCtx() {
     if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    if (audioCtx.state === "suspended") await audioCtx.resume();
     return audioCtx;
   }
 
-  let audioReady = false;
-  async function warmupAudio() {
-    if (audioReady) return;
+  // 在触摸事件里同步调用，解锁音频
+  function unlockAudio() {
+    try { const cx = getCtx(); if (cx.state === "suspended") cx.resume(); } catch(e) {}
+  }
+
+  function beep() {
     try {
-      const c = await ensureCtx();
-      const b = c.createBuffer(1, 1, c.sampleRate);
-      const s = c.createBufferSource(); s.buffer = b;
-      const g = c.createGain(); g.gain.value = 0.001;
-      s.connect(g); g.connect(c.destination); s.start();
-      audioReady = true;
+      const cx = getCtx();
+      if (cx.state === "suspended") { cx.resume().then(() => playBeep(cx)); return; }
+      playBeep(cx);
     } catch(e) {}
   }
 
-  async function beep() {
+  function playBeep(cx) {
     try {
-      const c = await ensureCtx();
-      const t = c.currentTime;
-      const dur = 0.15; const sr = c.sampleRate; const len = Math.floor(sr * dur);
-      const b = c.createBuffer(1, len, sr); const d = b.getChannelData(0);
+      const t = cx.currentTime, dur = 0.15, sr = cx.sampleRate;
+      const len = Math.floor(sr * dur);
+      const b = cx.createBuffer(1, len, sr);
+      const d = b.getChannelData(0);
       for (let i = 0; i < len; i++) {
         const s = i / sr;
         let v = Math.sin(6.2832 * (160 + Math.random() * 60) * s) * Math.exp(-s / 0.018);
@@ -862,18 +862,18 @@ body { position: fixed; inset: 0; }
         v += Math.sin(6.2832 * (700 + Math.random() * 300) * s) * Math.exp(-s / 0.025) * 0.3;
         d[i] = Math.max(-1, Math.min(1, v * 0.7));
       }
-      const src = c.createBufferSource(); src.buffer = b;
-      const filter = c.createBiquadFilter();
-      filter.type = "bandpass"; filter.frequency.value = 400; filter.Q.value = 1.2;
-      const gain = c.createGain();
-      gain.gain.setValueAtTime(0.7, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
-      src.connect(filter); filter.connect(gain); gain.connect(c.destination);
+      const src = cx.createBufferSource(); src.buffer = b;
+      const flt = cx.createBiquadFilter();
+      flt.type = "bandpass"; flt.frequency.value = 400; flt.Q.value = 1.2;
+      const gn = cx.createGain();
+      gn.gain.setValueAtTime(0.7, t);
+      gn.gain.exponentialRampToValueAtTime(0.01, t + dur);
+      src.connect(flt); flt.connect(gn); gn.connect(cx.destination);
       src.start(t);
     } catch(e) {}
   }
 
-  // ---- 语音 ----
+// ---- 语音 ----
   function speak() {
     try {
       if (!window.speechSynthesis) return;
@@ -963,7 +963,7 @@ body { position: fixed; inset: 0; }
     const py = cy || (rect.top + Math.random()*rect.height*0.5);
     particles(px, py, 3 + (Math.random()*5|0));
 
-    warmupAudio();
+    unlockAudio();
     beep();
     if (Math.random() < 0.45) speak();
   }
