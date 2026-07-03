@@ -705,6 +705,19 @@ body { position: fixed; inset: 0; }
   color: rgba(255,255,255,0.25);
   pointer-events: none;
 }
+/* 竖中指动画 */
+.finger {
+  position: fixed;
+  z-index: 45;
+  pointer-events: none;
+  font-size: 48px;
+  animation: fingerPop 0.8s ease-out forwards;
+}
+@keyframes fingerPop {
+  0%   { opacity: 1; transform: translateY(0) scale(0.3) rotate(-30deg); }
+  20%  { opacity: 1; transform: translateY(-40px) scale(1.3) rotate(0deg); }
+  100% { opacity: 0; transform: translateY(-120px) scale(0.8) rotate(10deg); }
+}
 </style>
 </head>
 <body>
@@ -820,20 +833,18 @@ body { position: fixed; inset: 0; }
   countNum.textContent = count;
 
   // ---- 气泡素材 ----
-  const BUBBLES = [
-    { t: 'WCNM!',  c: '' },
-    { t: 'WCNM!!', c: 'big' },
-    { t: 'W~C~N~M', c: '' },
-    { t: 'WCNM!!!', c: 'big' },
-    { t: '卧槽泥马',  c: 'pink' },
-    { t: 'WC!',    c: 'yellow' },
-    { t: 'WCNM~',  c: '' },
-    { t: '艹!',     c: 'big' },
-    { t: '我是你爹!', c: 'big' },
-    { t: '我是你爹', c: 'pink' },
+  const PAIRS = [
+    { t: 'WCNM!',    v: 'wcnm.mp3', c: '' },
+    { t: 'WCNM!!',   v: 'wcnm.mp3', c: 'big' },
+    { t: '卧槽泥马',  v: 'wcnm.mp3', c: 'pink' },
+    { t: '我是你爹!', v: 'nsd.mp3',  c: 'big' },
+    { t: '我是你爹',  v: 'nsd.mp3',  c: 'pink' },
+    { t: 'WC!',      v: 'wcnm.mp3', c: 'yellow' },
+    { t: 'WCNM~',    v: 'wcnm.mp3', c: '' },
+    { t: '艹!',      v: 'wcnm.mp3', c: 'big' },
   ];
 
-  const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
+  const PARTICLES = ['💢','🔥','💥','😡','⚡','💣','🗯️','❗','‼️'];
 
   // 暴露给 onclick 的直达通道
   window._directVoice = function() {
@@ -885,25 +896,36 @@ body { position: fixed; inset: 0; }
   }
 
   // 语音播放
-  function playVoice() {
+  function playVoice(file) {
     try {
-      var url = (Math.random() < 0.5 ? _blob1 : _blob2) || _blob1 || _blob2;
-      if (!url) return;
-      var a = new Audio(url);
+      var blob = file === 'wcnm.mp3' ? _blob1 : _blob2;
+      if (!blob) return;
+      var a = new Audio(blob);
       a.play().catch(function(){});
     } catch(e) {}
   }
 
 // ---- 气泡 ----
-  function bubble(x, y) {
-    const b = BUBBLES[Math.random()*BUBBLES.length|0];
-    const el = document.createElement('div');
-    el.className = 'bubble ' + b.c;
-    el.innerHTML = `<div class="bubble-inner">${b.t}</div>`;
+  function bubble(x, y, pair) {
+    var b = pair || PAIRS[Math.random()*PAIRS.length|0];
+    var el = document.createElement('div');
+    el.className = 'bubble ' + (b.c||'');
+    el.innerHTML = '<div class="bubble-inner">' + b.t + '</div>';
     el.style.left = (x + (Math.random()-0.5)*50) + 'px';
     el.style.top  = (y + (Math.random()-0.5)*30) + 'px';
-    el.addEventListener('animationend', ()=>el.remove());
+    el.addEventListener('animationend', function(){ el.remove(); });
     document.body.appendChild(el);
+  }
+
+  // ---- 竖中指 ----
+  function spawnFinger(x, y) {
+    var f = document.createElement('div');
+    f.className = 'finger';
+    f.textContent = '🖕';
+    f.style.left = x + 'px';
+    f.style.top = y + 'px';
+    f.addEventListener('animationend', function(){ f.remove(); });
+    document.body.appendChild(f);
   }
 
   // ---- 粒子 ----
@@ -951,6 +973,9 @@ body { position: fixed; inset: 0; }
     const py = cy || (rect.top + Math.random()*rect.height*0.5);
     particles(px, py, 3 + (Math.random()*5|0));
 
+    // 竖中指🖕
+    spawnFinger(rect.left + rect.width * 0.25, rect.top + rect.height * 0.38);
+
     playBeep();
     playVoice();
   }
@@ -963,14 +988,15 @@ body { position: fixed; inset: 0; }
   // 双击暴击
   function combo(e) {
     const rect = charEl.getBoundingClientRect();
+    var pair = PAIRS[Math.random()*PAIRS.length|0];
     for (let i=0; i<4; i++) {
       setTimeout(()=>{
-        bubble(rect.left+rect.width/2-30+(Math.random()-0.5)*70, rect.top+(Math.random()-0.5)*40);
+        bubble(rect.left+rect.width/2-30+(Math.random()-0.5)*70, rect.top+(Math.random()-0.5)*40, PAIRS[Math.random()*PAIRS.length|0]);
         particles(rect.left+Math.random()*rect.width, rect.top+Math.random()*rect.height*0.5, 5);
         playBeep();
       }, i*55);
     }
-    playVoice();
+    playVoice(pair.v);
   }
   charEl.addEventListener('dblclick', combo);
 
