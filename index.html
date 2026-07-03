@@ -823,6 +823,8 @@ body { position: fixed; inset: 0; }
     { t: 'WC!',    c: 'yellow' },
     { t: 'WCNM~',  c: '' },
     { t: '艹!',     c: 'big' },
+    { t: '我是你爹!', c: 'big' },
+    { t: '我是你爹', c: 'pink' },
   ];
 
   const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
@@ -880,7 +882,7 @@ body { position: fixed; inset: 0; }
       const vs = speechSynthesis.getVoices();
       if (vs.length > 0) voicesReady = true;
 
-      const texts = ['卧槽泥马','我草你妈','W C N M'];
+      const texts = ['卧槽泥马','我草你妈','我是你爹','W C N M'];
       const u = new SpeechSynthesisUtterance(texts[Math.random()*texts.length|0]);
       u.lang = 'zh-CN'; u.rate = 1.35; u.pitch = 0.7; u.volume = 0.9;
 
