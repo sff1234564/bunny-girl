@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>兔女郎</title>
+<style>
+/* ============================================
+   全局 - 手机优先
+   ============================================ */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  user-select: none; -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  background: #0D0A14;
+  font-family: 'PingFang SC', 'Microsoft YaHei', sans-serif;
+}
+
+/* 防止 iOS 橡皮筋效果 */
+body { position: fixed; inset: 0; }
+
+.stage {
+  position: relative;
+  width: 100vw; height: 100vh;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* ============================================
+   背景氛围
+   ============================================ */
+.bg-gradient {
+  position: fixed; inset: 0;
+  background: radial-gradient(ellipse 80% 50% at 50% 30%, #2D1030 0%, #16081E 40%, #0A0410 100%);
+  z-index: 0;
+}
+.spotlight {
+  position: fixed;
+  width: 70vmin; height: 70vmin;
+  max-width: 380px; max-height: 380px;
+  background: radial-gradient(circle, rgba(255,50,120,0.12) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(40px);
+  top: 15%; left: 50%;
+  transform: translateX(-50%);
+  z-index: 0;
+  animation: spotPulse 3.5s ease-in-out infinite;
+  pointer-events: none;
+}
+.spotlight2 {
+  position: fixed;
+  width: 50vmin; height: 50vmin;
+  max-width: 280px; max-height: 280px;
+  background: radial-gradient(circle, rgba(180,60,255,0.1) 0%, transparent 70%);
+  border-radius: 50%;
+  filter: blur(50px);
+  bottom: 20%; left: 50%;
+  transform: translateX(-50%);
+  z-index: 0;
+  animation: spotPulse 3.5s ease-in-out 1.7s infinite;
+  pointer-events: none;
+}
+@keyframes spotPulse {
+  0%, 100% { opacity: 0.5; transform: translateX(-50%) scale(1); }
+  50% { opacity: 1; transform: translateX(-50%) scale(1.25); }
+}
+
+/* ============================================
+   顶部 UI
+   ============================================ */
+.top-ui {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top, 16px));
+  z-index: 30;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.title {
+  font-size: clamp(16px, 4vw, 22px);
+  font-weight: 800;
+  color: #FFE0F0;
+  text-shadow: 0 0 16px rgba(255,80,160,0.5);
+  letter-spacing: 4px;
+}
+.count-text {
+  font-size: clamp(11px, 2.5vw, 13px);
+  color: rgba(255,200,220,0.7);
+}
+.count-text span {
+  color: #FF7090;
+  font-weight: 700;
+  font-size: clamp(16px, 3.5vw, 20px);
+}
+
+/* ============================================
+   角色容器 - 手机适配缩放
+   ============================================ */
+.char-wrapper {
+  position: relative;
+  z-index: 10;
+  /* 用 vmin 自适应屏幕 */
+  width: min(220px, 58vmin);
+  height: min(520px, 135vmin);
+  cursor: pointer;
+  transition: transform 0.08s ease;
+}
+.char-wrapper:active {
+  transform: scale(0.94);
+}
+.char-wrapper.shake {
+  animation: charShake 0.4s ease-out;
+}
+.char-wrapper.bounce {
+  animation: charBounce 0.28s ease-out;
+}
+.char-wrapper.heavy {
+  animation: charHeavy 0.5s ease-out;
+}
+@keyframes charShake {
+  0%,100%{transform:translateX(0)}
+  15%{transform:translateX(-3%)rotate(-2deg)}
+  35%{transform:translateX(3%)rotate(2deg)}
+  55%{transform:translateX(-2%)rotate(-1deg)}
+  75%{transform:translateX(1.5%)rotate(0.5deg)}
+}
+@keyframes charBounce {
+  0%{transform:scale(1)}
+  30%{transform:scale(0.9)}
+  55%{transform:scale(1.06)}
+  100%{transform:scale(1)}
+}
+@keyframes charHeavy {
+  0%{transform:translateY(0) scale(1)}
+  20%{transform:translateY(-6%) scale(0.95)}
+  50%{transform:translateY(3%) scale(1.05)}
+  80%{transform:translateY(-1.5%) scale(0.98)}
+  100%{transform:translateY(0) scale(1)}
+}
+
+/* 呼吸动画 */
+.char-wrapper {
+  animation: breathe 4s ease-in-out infinite;
+}
+@keyframes breathe {
+  0%,100%{transform:translateY(0)}
+  50%{transform:translateY(-1.5%)}
+}
+.char-wrapper:active {
+  animation: none;
+}
+
+/* ============================================
+   耳朵 - 更修长
+   ============================================ */
+.ear {
+  position: absolute;
+  width: 15%;
+  height: 22%;
+  background: linear-gradient(180deg, #1A1A30 0%, #252540 100%);
+  border-radius: 40% 40% 15% 15%;
+  z-index: 0;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.5));
+}
+.ear::after {
+  content: '';
+  position: absolute;
+  width: 52%; height: 70%;
+  background: linear-gradient(180deg, #FFB8D0 0%, #FF6B8A 100%);
+  border-radius: 40% 40% 20% 20%;
+  top: 14%; left: 24%;
+}
+.ear-l { top: 1%; left: 27%; transform: rotate(-12deg); }
+.ear-r { top: 1%; right: 27%; transform: rotate(12deg); }
+
+/* 发箍 */
+.headband {
+  position: absolute;
+  width: 64%;
+  height: 2.5%;
+  background: linear-gradient(180deg, #0A0A0A, #1A1A1A);
+  border-radius: 30%;
+  top: 16%;
+  left: 18%;
+  z-index: 3;
+}
+.headband-gem {
+  position: absolute;
+  width: 8%; height: 60%;
+  background: #FF3070;
+  border-radius: 50%;
+  top: 20%;
+  left: 46%;
+  box-shadow: 0 0 10px rgba(255,40,100,0.7);
+}
+
+/* ============================================
+   头发
+   ============================================ */
+.hair-back {
+  position: absolute;
+  width: 68%;
+  height: 18%;
+  background: linear-gradient(180deg, #1C1C30 0%, #242438 100%);
+  border-radius: 50% 50% 0 0;
+  top: 10%;
+  left: 16%;
+  z-index: 0;
+}
+.hair-bangs {
+  position: absolute;
+  width: 58%;
+  height: 12%;
+  background: #1C1C30;
+  border-radius: 0 0 55% 55%;
+  top: 14%;
+  left: 21%;
+  z-index: 4;
+}
+.hair-sidel {
+  position: absolute;
+  width: 10%; height: 18%;
+  background: #1C1C30;
+  border-radius: 0 0 50% 30%;
+  top: 14%;
+  left: 17%;
+  z-index: 4;
+  transform: rotate(-8deg);
+}
+.hair-sider {
+  position: absolute;
+  width: 10%; height: 18%;
+  background: #1C1C30;
+  border-radius: 0 0 30% 50%;
+  top: 14%;
+  right: 17%;
+  z-index: 4;
+  transform: rotate(8deg);
+}
+
+/* ============================================
+   头部
+   ============================================ */
+.head {
+  position: absolute;
+  width: 60%;
+  height: 28%;
+  background: linear-gradient(175deg, #FFEBD8 0%, #FBD8BE 100%);
+  border-radius: 48% 48% 44% 44%;
+  top: 12%;
+  left: 20%;
+  z-index: 1;
+  box-shadow: inset 0 5% 10% rgba(255,255,255,0.15), 0 4% 12% rgba(0,0,0,0.35);
+}
+
+/* 眼睛 - 更大更媚 */
+.eye {
+  position: absolute;
+  width: 16%; height: 9%;
+  background: #fff;
+  border-radius: 50%;
+  z-index: 5;
+  top: 23.5%;
+  box-shadow: 0 0 0 2px #1A1A2E, 0 0 0 3.5px rgba(255,255,255,0.08);
+}
+.eye-l { left: 27%; }
+.eye-r { right: 27%; }
+.pupil {
+  position: absolute;
+  width: 52%; height: 58%;
+  background: #1A1A2E;
+  border-radius: 50%;
+  top: 20%; left: 24%;
+}
+.catch1 {
+  position: absolute; width: 20%; height: 22%;
+  background: #fff; border-radius: 50%;
+  top: 14%; left: 12%;
+}
+.catch2 {
+  position: absolute; width: 10%; height: 10%;
+  background: #fff; border-radius: 50%;
+  bottom: 22%; left: 55%;
+}
+/* 眼睫毛 */
+.eyelash {
+  position: absolute;
+  width: 115%; height: 30%;
+  border-top: 3px solid #1A1A2E;
+  border-radius: 50%;
+  top: -8%;
+  left: -7.5%;
+}
+.eyelash::after {
+  content: '';
+  position: absolute;
+  width: 30%; height: 6px;
+  background: #1A1A2E;
+  border-radius: 3px;
+  top: -4px;
+  right: 12%;
+  transform: rotate(15deg);
+}
+
+/* 腮红 */
+.blush {
+  position: absolute;
+  width: 12%; height: 3.5%;
+  background: rgba(255,130,150,0.45);
+  border-radius: 50%;
+  top: 27.5%;
+  z-index: 5;
+  filter: blur(2px);
+}
+.blush-l { left: 21%; }
+.blush-r { right: 21%; }
+
+/* 嘴巴 - 微张性感 */
+.mouth {
+  position: absolute;
+  width: 10%; height: 3.5%;
+  background: #E8787A;
+  border-radius: 0 0 50% 50%;
+  top: 29.5%;
+  left: 45%;
+  z-index: 5;
+}
+.mouth::after {
+  content: '';
+  position: absolute;
+  width: 60%; height: 40%;
+  background: #F09090;
+  border-radius: 0 0 50% 50%;
+  top: 20%;
+  left: 20%;
+}
+
+/* ============================================
+   脖子 + 锁骨
+   ============================================ */
+.neck {
+  position: absolute;
+  width: 18%; height: 5%;
+  background: linear-gradient(180deg, #FBD8BE, #F5C8A8);
+  top: 38.5%;
+  left: 41%;
+  z-index: 0;
+}
+.collarbone {
+  position: absolute;
+  width: 32%; height: 2px;
+  border-top: 2px solid rgba(0,0,0,0.08);
+  border-radius: 50%;
+  top: 42%;
+  left: 34%;
+  z-index: 1;
+}
+
+/* ============================================
+   身体 - S曲线紧身衣
+   ============================================ */
+.bodysuit {
+  position: absolute;
+  width: 55%;
+  height: 29%;
+  background: linear-gradient(180deg, #15152A 0%, #1A1A30 30%, #111122 100%);
+  border-radius: 22% 22% 8% 8% / 14% 14% 6% 6%;
+  top: 43%;
+  left: 22.5%;
+  z-index: 1;
+  box-shadow: 0 4% 16% rgba(0,0,0,0.4), inset 0 2% 4% rgba(255,255,255,0.04);
+}
+
+/* 身体侧面曲线（收腰） */
+.waist-l, .waist-r {
+  position: absolute;
+  width: 8%;
+  height: 15%;
+  background: #15152A;
+  top: 46%;
+  z-index: 1;
+}
+.waist-l { left: 15%; border-radius: 60% 0 0 60%; }
+.waist-r { right: 15%; border-radius: 0 60% 60% 0; }
+
+/* 胸口 V 字 */
+.chest-v {
+  position: absolute;
+  width: 0; height: 0;
+  border-left: 14% solid transparent;
+  border-right: 14% solid transparent;
+  border-top: 14% solid #FFF8F5;
+  top: 43%;
+  left: 36%;
+  z-index: 2;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.25));
+}
+
+/* 胸线 */
+.bust-line {
+  position: absolute;
+  width: 30%;
+  height: 1.5px;
+  background: rgba(0,0,0,0.12);
+  top: 46%;
+  left: 35%;
+  z-index: 3;
+  border-radius: 50%;
+}
+
+/* 蝴蝶结 - 更大更显眼 */
+.bow-container {
+  position: absolute;
+  z-index: 4;
+  top: 52%;
+  left: 44%;
+  width: 12%; height: 5%;
+}
+.bow-center {
+  width: 30%; height: 60%;
+  background: #E02040;
+  border-radius: 50%;
+  margin: 20% auto 0;
+}
+.bow-l, .bow-r {
+  position: absolute;
+  width: 55%; height: 70%;
+  background: #E02040;
+  border-radius: 50%;
+  top: -5%;
+}
+.bow-l { right: 28%; transform: rotate(-30deg); }
+.bow-r { left: 28%; transform: rotate(30deg); }
+.bow-ribbon {
+  position: absolute;
+  width: 14%; height: 28%;
+  background: #E02040;
+  top: 65%;
+  left: 43%;
+  z-index: 3;
+  border-radius: 2px;
+}
+
+/* ============================================
+   手臂 - 戴长手套
+   ============================================ */
+.arm {
+  position: absolute;
+  width: 12%;
+  height: 22%;
+  border-radius: 30% 30% 25% 25%;
+  z-index: 0;
+  top: 44%;
+}
+.arm-l { left: 11%; transform: rotate(14deg); }
+.arm-r { right: 11%; transform: rotate(-14deg); }
+.upper-arm {
+  width: 100%; height: 55%;
+  background: linear-gradient(180deg, #1A1A30, #222240);
+  border-radius: 40% 40% 20% 20%;
+}
+.forearm {
+  width: 100%; height: 50%;
+  background: linear-gradient(180deg, #FBD8BE 0%, #F5C8A8 60%, #1A1A30 60%, #222240 100%);
+  border-radius: 20% 20% 30% 30%;
+  margin-top: -5%;
+}
+.hand {
+  position: absolute;
+  width: 70%; height: 12%;
+  background: #FBD8BE;
+  border-radius: 35%;
+  bottom: 0;
+  left: 15%;
+}
+
+/* ============================================
+   腿 - 超长黑丝
+   ============================================ */
+.leg {
+  position: absolute;
+  width: 14.5%;
+  height: 33%;
+  border-radius: 30% 30% 18% 18%;
+  z-index: 0;
+  top: 70%;
+}
+.leg-l { left: 29%; }
+.leg-r { right: 29%; }
+
+/* 绝对领域 */
+.thigh-skin {
+  position: absolute;
+  width: 100%;
+  height: 24%;
+  background: linear-gradient(180deg, #F5C8A8, #FBD8BE);
+  border-radius: 25% 25% 0 0;
+  top: 0; left: 0;
+}
+
+/* 黑丝 */
+.stocking {
+  position: absolute;
+  width: 102%;
+  height: 78%;
+  background: linear-gradient(180deg, #1A1A30 0%, #151525 40%, #10101F 100%);
+  border-radius: 0 0 22% 22%;
+  bottom: 0;
+  left: -1%;
+  /* 丝袜微透感 */
+  box-shadow: inset 0 2% 6% rgba(255,255,255,0.03), inset 0 -4% 8% rgba(0,0,0,0.3);
+}
+
+/* 丝袜高光 */
+.stocking::after {
+  content: '';
+  position: absolute;
+  width: 25%;
+  height: 50%;
+  background: linear-gradient(180deg, rgba(255,255,255,0.08), transparent);
+  border-radius: 30%;
+  left: 18%;
+  top: 8%;
+}
+
+/* 袜口蕾丝边 */
+.stocking-top {
+  position: absolute;
+  width: 104%;
+  height: 3%;
+  background: repeating-linear-gradient(90deg, #111 0px, #111 2px, transparent 2px, transparent 4px);
+  top: 0%;
+  left: -2%;
+  z-index: 2;
+  border-radius: 1px;
+}
+
+/* ============================================
+   高跟鞋 - 细跟
+   ============================================ */
+.heel-wrap {
+  position: absolute;
+  width: 110%;
+  height: 10%;
+  bottom: -8%;
+  left: -5%;
+  z-index: 1;
+}
+.heel-body {
+  width: 100%; height: 60%;
+  background: linear-gradient(180deg, #0A0A0A 0%, #040404 100%);
+  border-radius: 15% 15% 30% 30%;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.heel-spike {
+  position: absolute;
+  width: 16%;
+  height: 70%;
+  background: #020202;
+  bottom: -60%;
+  right: 18%;
+  border-radius: 0 0 2px 2px;
+}
+.heel-sole {
+  position: absolute;
+  width: 100%; height: 25%;
+  background: #050505;
+  bottom: -22%;
+  border-radius: 0 0 20% 20%;
+}
+
+/* ============================================
+   兔尾巴 - 毛茸茸
+   ============================================ */
+.tail {
+  position: absolute;
+  width: 14%;
+  height: 6%;
+  background: radial-gradient(circle at 35% 35%, #fff 0%, #F0E0F0 55%, #D8C8D8 100%);
+  border-radius: 50%;
+  bottom: 29%;
+  right: 5%;
+  z-index: 0;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), inset 0 3px 6px rgba(255,255,255,0.5);
+  animation: tailWiggle 2.8s ease-in-out infinite;
+}
+@keyframes tailWiggle {
+  0%,100%{transform:rotate(0)}
+  30%{transform:rotate(8deg)}
+  70%{transform:rotate(-6deg)}
+}
+
+/* ============================================
+   气泡（手机优化 - 更大字号）
+   ============================================ */
+.bubble {
+  position: fixed;
+  z-index: 50;
+  pointer-events: none;
+  animation: bubFloat 2s ease-out forwards;
+}
+.bubble-inner {
+  background: #fff;
+  color: #FF2050;
+  font-size: clamp(22px, 6vw, 34px);
+  font-weight: 900;
+  padding: 12px 20px;
+  border-radius: 18px;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.35);
+  letter-spacing: 1px;
+  position: relative;
+}
+.bubble-inner::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 12px solid #fff;
+}
+.bubble.pink .bubble-inner { background: #FF4070; color: #fff; }
+.bubble.pink .bubble-inner::after { border-top-color: #FF4070; }
+.bubble.yellow .bubble-inner { background: #FFE030; color: #222; }
+.bubble.yellow .bubble-inner::after { border-top-color: #FFE030; }
+.bubble.big .bubble-inner {
+  font-size: clamp(28px, 8vw, 44px);
+  padding: 16px 28px;
+  animation: angryBub 0.35s ease-out;
+}
+@keyframes angryBub {
+  0%{transform:scale(0.3)}
+  60%{transform:scale(1.15)}
+  100%{transform:scale(1)}
+}
+@keyframes bubFloat {
+  0%{opacity:1;transform:translateY(0) scale(0.2)}
+  12%{opacity:1;transform:translateY(-15px) scale(1.1)}
+  22%{opacity:1;transform:translateY(-25px) scale(1)}
+  100%{opacity:0;transform:translateY(-35vh) scale(0.7)}
+}
+
+/* ============================================
+   粒子
+   ============================================ */
+.particle {
+  position: fixed;
+  z-index: 40;
+  pointer-events: none;
+  animation: pFly 0.8s ease-out forwards;
+  font-size: clamp(16px, 5vw, 24px);
+}
+@keyframes pFly {
+  0%{opacity:1;transform:translate(0,0) scale(0.4)}
+  100%{opacity:0;transform:translate(var(--px),var(--py)) scale(1.3)}
+}
+
+/* ============================================
+   重置按钮
+   ============================================ */
+.reset-btn {
+  position: fixed;
+  bottom: max(20px, env(safe-area-inset-bottom, 20px));
+  z-index: 30;
+  padding: 10px 28px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 22px;
+  color: rgba(255,255,255,0.45);
+  font-size: 13px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s;
+  -webkit-tap-highlight-color: transparent;
+}
+.reset-btn:active {
+  background: rgba(255,255,255,0.18);
+  color: rgba(255,255,255,0.8);
+}
+
+/* ============================================
+   提示文字
+   ============================================ */
+.tip {
+  position: fixed;
+  bottom: max(70px, calc(env(safe-area-inset-bottom, 20px) + 55px));
+  z-index: 25;
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+  pointer-events: none;
+}
+</style>
+</head>
+<body>
+
+<div class="stage" id="stage">
+
+  <div class="bg-gradient"></div>
+  <div class="spotlight"></div>
+  <div class="spotlight2"></div>
+
+  <!-- 顶部 -->
+  <div class="top-ui">
+    <div class="title">🐰 兔 女 郎 🐰</div>
+    <div class="count-text">被戳 <span id="countNum">0</span> 次</div>
+  </div>
+
+  <!-- 角色 -->
+  <div class="char-wrapper" id="char">
+
+    <div class="hair-back"></div>
+
+    <div class="ear ear-l"></div>
+    <div class="ear ear-r"></div>
+
+    <div class="headband">
+      <div class="headband-gem"></div>
+    </div>
+
+    <div class="head"></div>
+
+    <div class="hair-bangs"></div>
+    <div class="hair-sidel"></div>
+    <div class="hair-sider"></div>
+
+    <div class="eye eye-l">
+      <div class="pupil">
+        <div class="catch1"></div><div class="catch2"></div>
+      </div>
+      <div class="eyelash"></div>
+    </div>
+    <div class="eye eye-r">
+      <div class="pupil">
+        <div class="catch1"></div><div class="catch2"></div>
+      </div>
+      <div class="eyelash"></div>
+    </div>
+
+    <div class="blush blush-l"></div>
+    <div class="blush blush-r"></div>
+    <div class="mouth"></div>
+
+    <div class="neck"></div>
+    <div class="collarbone"></div>
+
+    <div class="bodysuit"></div>
+    <div class="waist-l"></div>
+    <div class="waist-r"></div>
+    <div class="chest-v"></div>
+    <div class="bust-line"></div>
+
+    <div class="bow-container">
+      <div class="bow-l"></div><div class="bow-r"></div>
+      <div class="bow-center"></div>
+    </div>
+    <div class="bow-ribbon"></div>
+
+    <div class="arm arm-l">
+      <div class="upper-arm"></div>
+      <div class="forearm"><div class="hand"></div></div>
+    </div>
+    <div class="arm arm-r">
+      <div class="upper-arm"></div>
+      <div class="forearm"><div class="hand"></div></div>
+    </div>
+
+    <div class="leg leg-l">
+      <div class="thigh-skin"></div>
+      <div class="stocking"><div class="stocking-top"></div></div>
+      <div class="heel-wrap"><div class="heel-body"><div class="heel-spike"></div></div><div class="heel-sole"></div></div>
+    </div>
+    <div class="leg leg-r">
+      <div class="thigh-skin"></div>
+      <div class="stocking"><div class="stocking-top"></div></div>
+      <div class="heel-wrap"><div class="heel-body"><div class="heel-spike"></div></div><div class="heel-sole"></div></div>
+    </div>
+
+    <div class="tail"></div>
+  </div>
+
+  <div class="tip">戳她 👆</div>
+  <button class="reset-btn" id="resetBtn">重置</button>
+
+</div>
+
+<script>
+(function() {
+  'use strict';
+
+  const charEl   = document.getElementById('char');
+  const stage    = document.getElementById('stage');
+  const countNum = document.getElementById('countNum');
+  const resetBtn = document.getElementById('resetBtn');
+
+  let count    = parseInt(localStorage.getItem('bny_cnt') || '0', 10) || 0;
+  let cooldown = false;
+  let audioCtx = null;
+  let voicesReady = false;
+
+  countNum.textContent = count;
+
+  // ---- 气泡素材 ----
+  const BUBBLES = [
+    { t: 'WCNM!',  c: '' },
+    { t: 'WCNM!!', c: 'big' },
+    { t: 'W~C~N~M', c: '' },
+    { t: 'WCNM!!!', c: 'big' },
+    { t: '卧槽泥马',  c: 'pink' },
+    { t: 'WC!',    c: 'yellow' },
+    { t: 'WCNM~',  c: '' },
+    { t: '艹!',     c: 'big' },
+  ];
+
+  const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
+
+  // ---- 音频引擎 ----
+  function ctx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function beep() {
+    try {
+      const c = ctx(); const t = c.currentTime; const sr = c.sampleRate;
+      const dur = 0.09; const len = sr * dur | 0;
+      const b = c.createBuffer(1, len, sr); const d = b.getChannelData(0);
+      for (let i = 0; i < len; i++) {
+        const s = i / sr;
+        let v = (Math.random()*2-1) * Math.exp(-s/0.012);
+        v += Math.sin(6.2832*(190+Math.random()*90)*s) * Math.exp(-s/0.016) * 0.55;
+        v += Math.sin(6.2832*(580+Math.random()*250)*s) * Math.exp(-s/0.022) * 0.25;
+        d[i] = Math.max(-1, Math.min(1, v * 0.55));
+      }
+      const s = c.createBufferSource(); s.buffer = b;
+      const g = c.createGain();
+      g.gain.setValueAtTime(0.45, t);
+      g.gain.exponentialRampToValueAtTime(0.01, t+dur);
+      s.connect(g); g.connect(c.destination); s.start(t);
+    } catch(e) {}
+  }
+
+  // ---- 语音 ----
+  function speak() {
+    try {
+      if (!window.speechSynthesis) return;
+      speechSynthesis.cancel();
+
+      const texts = ['卧槽泥马','我草你妈','W C N M'];
+      const u = new SpeechSynthesisUtterance(texts[Math.random()*texts.length|0]);
+      u.lang = 'zh-CN'; u.rate = 1.35; u.pitch = 0.7; u.volume = 0.9;
+
+      if (voicesReady) {
+        const vs = speechSynthesis.getVoices();
+        const best = vs.find(v=>v.lang.startsWith('zh')&&v.name.includes('Female'))
+                  || vs.find(v=>v.lang.startsWith('zh'))
+                  || vs[0];
+        if (best) u.voice = best;
+      }
+      speechSynthesis.speak(u);
+    } catch(e) {}
+  }
+
+  if (window.speechSynthesis) {
+    speechSynthesis.getVoices();
+    speechSynthesis.onvoiceschanged = () => {
+      voicesReady = true;
+      speechSynthesis.getVoices();
+    };
+  }
+
+  // ---- 气泡 ----
+  function bubble(x, y) {
+    const b = BUBBLES[Math.random()*BUBBLES.length|0];
+    const el = document.createElement('div');
+    el.className = 'bubble ' + b.c;
+    el.innerHTML = `<div class="bubble-inner">${b.t}</div>`;
+    el.style.left = (x + (Math.random()-0.5)*50) + 'px';
+    el.style.top  = (y + (Math.random()-0.5)*30) + 'px';
+    el.addEventListener('animationend', ()=>el.remove());
+    document.body.appendChild(el);
+  }
+
+  // ---- 粒子 ----
+  function particles(x, y, n) {
+    for (let i=0; i<n; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      p.textContent = PARTICLES[Math.random()*PARTICLES.length|0];
+      p.style.left = x + 'px'; p.style.top = y + 'px';
+      p.style.setProperty('--px', ((Math.random()-0.5)*140)+'px');
+      p.style.setProperty('--py', ((Math.random()-0.5)*140-50)+'px');
+      p.addEventListener('animationend', ()=>p.remove());
+      document.body.appendChild(p);
+    }
+  }
+
+  // ---- 主交互 ----
+  function hit(e) {
+    if (cooldown) return;
+    cooldown = true;
+    setTimeout(()=>cooldown=false, 70);
+
+    e.preventDefault?.();
+    count++;
+    countNum.textContent = count;
+    try { localStorage.setItem('bny_cnt', String(count)); } catch(_) {}
+
+    const cx = (e.touches?.[0]?.clientX ?? e.clientX) || (e.changedTouches?.[0]?.clientX);
+    const cy = (e.touches?.[0]?.clientY ?? e.clientY) || (e.changedTouches?.[0]?.clientY);
+
+    // 角色反应动画
+    const r = Math.random();
+    charEl.classList.remove('shake','bounce','heavy');
+    void charEl.offsetWidth;
+    if (r < 0.55) charEl.classList.add('bounce');
+    else if (r < 0.85) charEl.classList.add('shake');
+    else charEl.classList.add('heavy');
+
+    // 气泡
+    const rect = charEl.getBoundingClientRect();
+    bubble(rect.left + rect.width/2 - 30, rect.top + 10);
+
+    // 粒子
+    const px = cx || (rect.left + Math.random()*rect.width);
+    const py = cy || (rect.top + Math.random()*rect.height*0.5);
+    particles(px, py, 3 + (Math.random()*5|0));
+
+    beep();
+    if (Math.random() < 0.45) speak();
+  }
+
+  // ---- 事件 ----
+  charEl.addEventListener('pointerdown', hit);
+  charEl.addEventListener('touchstart', hit, {passive: false});
+  charEl.addEventListener('contextmenu', e=>e.preventDefault());
+
+  // 双击暴击
+  function combo(e) {
+    const rect = charEl.getBoundingClientRect();
+    for (let i=0; i<4; i++) {
+      setTimeout(()=>{
+        bubble(rect.left+rect.width/2-30+(Math.random()-0.5)*70, rect.top+(Math.random()-0.5)*40);
+        particles(rect.left+Math.random()*rect.width, rect.top+Math.random()*rect.height*0.5, 5);
+        beep();
+      }, i*55);
+    }
+    speak();
+  }
+  charEl.addEventListener('dblclick', combo);
+
+  // 重置
+  resetBtn.addEventListener('pointerdown', function(e) {
+    e.stopPropagation?.(); e.preventDefault?.();
+    count=0; countNum.textContent='0';
+    try{localStorage.setItem('bny_cnt','0')}catch(_){}
+    document.querySelectorAll('.bubble,.particle').forEach(el=>el.remove());
+  });
+
+  // 预加载语音列表
+  if (window.speechSynthesis) {
+    setTimeout(()=>{
+      speechSynthesis.getVoices();
+      voicesReady = true;
+    }, 200);
+  }
+})();
+</script>
+
+</body>
+</html>
