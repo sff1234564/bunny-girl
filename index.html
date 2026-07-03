@@ -873,27 +873,37 @@ body { position: fixed; inset: 0; }
     } catch(e) {}
   }
 
-// ---- 语音 ----
+// ---- 语音（兼容 iOS/Android） ----
+  let _lastUtterance = null; // 保持引用防 GC
+
   function speak() {
     try {
-      if (!window.speechSynthesis) return;
-      speechSynthesis.cancel();
+      const ss = window.speechSynthesis;
+      if (!ss) return;
 
-      const vs = speechSynthesis.getVoices();
+      const vs = ss.getVoices();
       if (vs.length > 0) voicesReady = true;
 
-      const texts = ['卧槽泥马','我草你妈','我是你爹','W C N M'];
+      const texts = ["卧槽泥马","我草你妈","我是你爹","W C N M"];
       const u = new SpeechSynthesisUtterance(texts[Math.random()*texts.length|0]);
-      u.lang = 'zh-CN'; u.rate = 1.35; u.pitch = 0.7; u.volume = 0.9;
+      u.lang = "zh-CN";
+      u.rate = 1.2;
+      u.pitch = 0.75;
+      u.volume = 1;
 
-      if (voicesReady) {
-        const vs = speechSynthesis.getVoices();
-        const best = vs.find(v=>v.lang.startsWith('zh')&&v.name.includes('Female'))
-                  || vs.find(v=>v.lang.startsWith('zh'))
-                  || vs[0];
+      if (vs.length > 0) {
+        const best = vs.find(v => v.lang.startsWith("zh-CN"))
+                  || vs.find(v => v.lang.startsWith("zh"))
+                  || null;
         if (best) u.voice = best;
       }
-      setTimeout(() => { speechSynthesis.speak(u); }, 10);
+
+      _lastUtterance = u;
+      ss.cancel();
+      // requestAnimationFrame 确保在用户手势窗口内执行
+      requestAnimationFrame(() => {
+        try { ss.speak(u); } catch(e) {}
+      });
     } catch(e) {}
   }
 
@@ -903,10 +913,15 @@ body { position: fixed; inset: 0; }
       voicesReady = true;
       speechSynthesis.getVoices();
     };
-    setTimeout(() => { voicesReady = true; }, 2000);
+    setTimeout(() => { voicesReady = true; }, 3000);
+    // Android Chrome 修复：定时保活
+    setInterval(() => {
+      if (speechSynthesis.speaking) return;
+      try { speechSynthesis.pause(); speechSynthesis.resume(); } catch(e) {}
+    }, 5000);
   }
 
-  // ---- 气泡 ----
+// ---- 气泡 ----
   function bubble(x, y) {
     const b = BUBBLES[Math.random()*BUBBLES.length|0];
     const el = document.createElement('div');
