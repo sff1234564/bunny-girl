@@ -833,33 +833,34 @@ body { position: fixed; inset: 0; }
 
   const PARTICLES = ['💢','🔥','💥','💀','😡','⚡','💣','🗯️','❗','‼️','💔','👊'];
 
-  // ---- 音频引擎（纯 Web Audio API，点开即用） ----
+  // ---- 音频引擎（修复：resume 异步等待） ----
   var _ctx = null;
 
-  // 获取或创建 AudioContext（首次点击时同步创建）
-  function ctx() {
+  function getCtx() {
     if (!_ctx) {
       _ctx = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    if (_ctx.state === "suspended") {
-      _ctx.resume();
     }
     return _ctx;
   }
 
-  // 点击音效：短促"啪"声
+  // 点击音效："啪"
   function playBeep() {
     try {
-      var c = ctx();
-      if (!c || c.state === "closed") return;
-      
+      var c = getCtx();
+      if (c.state === "suspended") {
+        c.resume().then(function() { doBeep(c); });
+        return;
+      }
+      doBeep(c);
+    } catch(e) {}
+  }
+
+  function doBeep(c) {
+    try {
       var t = c.currentTime;
-      var dur = 0.12;
-      var sr = c.sampleRate;
-      var len = Math.floor(sr * dur);
+      var dur = 0.12, sr = c.sampleRate, len = Math.floor(sr * dur);
       var buf = c.createBuffer(1, len, sr);
       var d = buf.getChannelData(0);
-      
       for (var i = 0; i < len; i++) {
         var ts = i / sr;
         var v = (Math.random() * 2 - 1) * Math.exp(-ts / 0.008) * 0.6;
@@ -867,73 +868,62 @@ body { position: fixed; inset: 0; }
         v += Math.sin(2 * Math.PI * 600 * ts) * Math.exp(-ts / 0.02) * 0.3;
         d[i] = Math.max(-1, Math.min(1, v));
       }
-      
-      var src = c.createBufferSource();
-      src.buffer = buf;
-      var gain = c.createGain();
-      gain.gain.setValueAtTime(0.8, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
-      src.connect(gain);
-      gain.connect(c.destination);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var gn = c.createGain();
+      gn.gain.setValueAtTime(0.8, t);
+      gn.gain.exponentialRampToValueAtTime(0.01, t + dur);
+      src.connect(gn); gn.connect(c.destination);
       src.start(t);
     } catch(e) {}
   }
 
-  // 语音音效：机器人式愤怒喊声
-  function playShout(freqs) {
+  // 语音音效
+  function playVoice() {
     try {
-      var c = ctx();
-      if (!c || c.state === "closed") return;
+      // "WCNM": start,dur,freq,slope 四元组
+      var wcnm = [0.02,0.10,700,0.1, 0.13,0.08,450,-0.1, 0.22,0.12,250,0, 0.35,0.15,550,-0.6];
+      // "我是你爹"
+      var nsd  = [0.02,0.13,500,0.5, 0.16,0.10,650,-0.5, 0.27,0.09,350,0, 0.37,0.17,550,-0.7];
       
+      var freqs = Math.random() < 0.5 ? wcnm : nsd;
+      var c = getCtx();
+      if (c.state === "suspended") {
+        c.resume().then(function() { doShout(c, freqs); });
+        return;
+      }
+      doShout(c, freqs);
+    } catch(e) {}
+  }
+
+  function doShout(c, freqs) {
+    try {
       var t = c.currentTime;
-      var dur = 0.6;
-      var sr = c.sampleRate;
-      var len = Math.floor(sr * dur);
+      var dur = 0.6, sr = c.sampleRate, len = Math.floor(sr * dur);
       var buf = c.createBuffer(1, len, sr);
       var d = buf.getChannelData(0);
-      
       for (var i = 0; i < len; i++) {
-        var ts = i / sr;
-        var v = 0;
-        // 遍历音节
+        var ts = i / sr, v = 0;
         for (var s = 0; s < freqs.length; s += 4) {
-          var st = freqs[s];
-          var sd = freqs[s + 1];
-          var sf = freqs[s + 2];
-          var sv = freqs[s + 3];
+          var st = freqs[s], sd = freqs[s+1], sf = freqs[s+2], sv = freqs[s+3];
           if (ts >= st && ts < st + sd) {
             var lt = ts - st;
             var env = Math.exp(-lt / (sd * 0.4));
             var f = sf * (1 + sv * lt / sd);
-            // 方波 + 噪声 = 粗粝人声感
-            var phase = 2 * Math.PI * f * lt;
-            v += (Math.sin(phase) > 0 ? 1 : -1) * env * 0.3;
-            v += Math.sin(phase) * env * 0.2;
+            var ph = 2 * Math.PI * f * lt;
+            v += (Math.sin(ph) > 0 ? 1 : -1) * env * 0.3;
+            v += Math.sin(ph) * env * 0.2;
             v += (Math.random() * 2 - 1) * env * 0.3;
           }
         }
         d[i] = Math.max(-1, Math.min(1, v * 0.8));
       }
-      
-      var src = c.createBufferSource();
-      src.buffer = buf;
-      var gain = c.createGain();
-      gain.gain.setValueAtTime(0.7, t);
-      gain.gain.exponentialRampToValueAtTime(0.01, t + dur);
-      src.connect(gain);
-      gain.connect(c.destination);
+      var src = c.createBufferSource(); src.buffer = buf;
+      var gn = c.createGain();
+      gn.gain.setValueAtTime(0.7, t);
+      gn.gain.exponentialRampToValueAtTime(0.01, t + dur);
+      src.connect(gn); gn.connect(c.destination);
       src.start(t);
     } catch(e) {}
-  }
-
-  // "WCNM" 音节: [start, duration, freq, pitchSlope]
-  var _wcnmFreqs = [0.02,0.10,700,0,  0.13,0.08,450,0,  0.22,0.12,250,0,  0.35,0.15,550,-0.6];
-  // "我是你爹" 音节
-  var _nsdFreqs  = [0.02,0.13,500,0.5, 0.16,0.10,650,-0.5, 0.27,0.09,350,0, 0.37,0.17,550,-0.7];
-
-  function playVoice() {
-    var freqs = Math.random() < 0.5 ? _wcnmFreqs : _nsdFreqs;
-    playShout(freqs);
   }
 
 // ---- 气泡 ----
